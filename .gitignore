@@ -4,9 +4,10 @@ node_modules/
 __pycache__/
 *.pyc
 
-# Build outputs
-dist/
+# Build outputs (frontend/dist is tracked so teammates can run without node/npm)
 build/
+!frontend/dist/
+!frontend/dist/**
 
 # Local databases & env
 *.db

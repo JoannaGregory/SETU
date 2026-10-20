@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="setuGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+    <linearGradient id="sunGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#EF4444" />
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2"/>
+  <!-- Rising Sun / Knowledge -->
+  <circle cx="50" cy="40" r="16" fill="url(#sunGrad)" opacity="0.9"/>
+  <!-- Open Book Pages -->
+  <path d="M50 48 C42 42, 28 42, 20 46 L20 70 C28 66, 42 66, 50 72 C58 66, 72 66, 80 70 L80 46 C72 42, 58 42, 50 48 Z" fill="url(#setuGrad)"/>
+  <!-- Bridge Arch Structure underneath -->
+  <path d="M16 78 Q50 62 84 78" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+  <!-- Pillar lines -->
+  <line x1="32" y1="72" x2="32" y2="82" stroke="#1E3A8A" stroke-width="3" stroke-linecap="round"/>
+  <line x1="50" y1="68" x2="50" y2="84" stroke="#1E3A8A" stroke-width="3" stroke-linecap="round"/>
+  <line x1="68" y1="72" x2="68" y2="82" stroke="#1E3A8A" stroke-width="3" stroke-linecap="round"/>
+</svg>

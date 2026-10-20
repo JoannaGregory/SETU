@@ -5,6 +5,17 @@ echo   Starting SETU Platform
 echo =========================================================
 echo.
 
+cd /d "%~dp0"
+
+:: If frontend/dist is missing and npm is available, build frontend automatically
+if not exist "frontend\dist\index.html" (
+    echo Building frontend distribution bundle...
+    cd frontend
+    call npm.cmd install
+    call npm.cmd run build
+    cd ..
+)
+
 cd /d "%~dp0backend"
 
 :: Check if virtual environment exists; if not, create and install
@@ -18,11 +29,11 @@ if not exist ".venv\Scripts\activate.bat" (
     call .venv\Scripts\activate.bat
 )
 
-echo [2/3] Starting SETU Backend & Web Server on port 8000...
+echo [2/3] Starting SETU Backend and Web Server on port 8000...
 start "SETU Server" .venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
 echo [3/3] Opening browser at http://127.0.0.1:8000 ...
-timeout /t 2 /nobreak >nul
+timeout /t 3 /nobreak >nul
 start http://127.0.0.1:8000
 
 echo.

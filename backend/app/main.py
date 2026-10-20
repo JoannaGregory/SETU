@@ -313,7 +313,7 @@ def update_scheme_status(scheme_id: str, data: Dict[str, Any]):
 
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 # ----------------- LEARNING RESOURCES -----------------
 @app.get("/api/learning")
@@ -327,15 +327,35 @@ def get_learning_resources():
 
 # Check if frontend/dist exists to serve the SPA
 FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
-if FRONTEND_DIST.exists():
+if FRONTEND_DIST.exists() and (FRONTEND_DIST / "assets").exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
 
-    @app.get("/{full_path:path}")
-    def serve_spa(full_path: str):
-        # Don't intercept API routes
-        if full_path.startswith("api/"):
-            raise HTTPException(status_code=404, detail="API route not found")
+@app.get("/{full_path:path}")
+def serve_spa(full_path: str):
+    # Don't intercept API routes
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API route not found")
+    
+    if FRONTEND_DIST.exists():
         file_path = FRONTEND_DIST / full_path
         if file_path.exists() and file_path.is_file():
             return FileResponse(file_path)
-        return FileResponse(FRONTEND_DIST / "index.html")
+        index_file = FRONTEND_DIST / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+
+    return HTMLResponse(
+        """
+        <!DOCTYPE html>
+        <html>
+        <head><title>SETU</title><meta name='viewport' content='width=device-width, initial-scale=1.0'></head>
+        <body style='font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:60px 20px;background:#F8FAFC;color:#0F172A;'>
+            <div style='max-width:540px;margin:0 auto;background:#FFF;padding:40px;border-radius:16px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);border:1px solid #E2E8F0;'>
+                <h2 style='color:#1E3A8A;margin-bottom:12px;'>SETU Server is Running!</h2>
+                <p style='color:#64748B;line-height:1.6;margin-bottom:24px;'>The frontend bundle was not found locally. Run <code>run_all.bat</code> or run <code>npm run build</code> in the frontend directory.</p>
+                <a href='/docs' style='display:inline-block;background:#1E3A8A;color:#FFF;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;'>View Interactive API Docs &rarr;</a>
+            </div>
+        </body>
+        </html>
+        """
+    )
