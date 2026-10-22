@@ -5,7 +5,7 @@ class StudentProfile(BaseModel):
     student_id: Optional[str] = None
     name: Optional[str] = "Student"
     state: str = "Tamil Nadu"
-    completed_class: int = Field(..., description="Completed school class, e.g. 10, 11, 12, or 13 for Diploma/UG")
+    completed_class: Optional[int] = None  # optional, validation handled elsewhere
     income: int = Field(..., description="Annual family income in INR")
     category: str = Field("General", description="Community/Category: OC, BC, MBC, DNC, SC, ST, etc.")
     gender: str = Field("any", description="male, female, other, any")
