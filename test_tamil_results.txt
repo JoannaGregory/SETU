@@ -1,0 +1,35 @@
+Input: என் மகன் பத்தாம் வகுப்பு படிக்கிறான்
+  Class: 10
+  Gender: male
+  Income: None
+  Category: None
+Input: வணக்கம் வணக்கம் எனது மகன்
+  Class: None
+  Gender: male
+  Income: None
+  Category: None
+Input: எனது மகன் பத்தாம் வகுப்பு
+  Class: 10
+  Gender: male
+  Income: None
+  Category: None
+Input: பத்தாம் வகுப்பு
+  Class: 10
+  Gender: None
+  Income: None
+  Category: None
+Input: மாணவர் ஆண்
+  Class: None
+  Gender: male
+  Income: None
+  Category: None
+Input: ஒரு லட்சத்திற்கும் கீழ்
+  Class: None
+  Gender: None
+  Income: 90000
+  Category: None
+Input: BC (பிற்படுத்தப்பட்டோர்)
+  Class: None
+  Gender: None
+  Income: None
+  Category: BC

@@ -22,72 +22,118 @@ def get_or_create_session(session_id: str) -> Dict[str, Any]:
     return _SESSIONS[session_id]
 
 def parse_income(text: str) -> Optional[int]:
-    """Parse income in various Indian formats: e.g. 1.5 lakhs, 200000, 80k, etc."""
-    text_lower = text.lower().replace(",", "").strip()
+    """Parse income in various Indian formats in English & Tamil."""
+    t = text.lower().replace(",", "").strip()
     
-    # Check for "below" phrases first
-    if "below 1 lakh" in text_lower or "below one lakh" in text_lower:
+    # Tamil income phrases
+    if "ஒரு லட்சத்தி" in t or "ஒரு லட்சம்" in t or "1 லட்சம்" in t:
         return 90000
-    if "below 2 lakh" in text_lower or "below two lakh" in text_lower:
+    if "இரண்டு லட்சத்தி" in t or "இரண்டு லட்சம்" in t or "2 லட்சம்" in t:
         return 180000
-    if "below 2.5 lakh" in text_lower or "below 2.5" in text_lower:
+    if "இரண்டரை லட்ச" in t or "2.5 லட்சம்" in t:
         return 220000
-    if "below 5 lakh" in text_lower:
+    if "மூன்று லட்ச" in t or "3 லட்சம்" in t:
+        return 280000
+    if "ஐந்து லட்ச" in t or "5 லட்சம்" in t:
+        return 350000
+    if "எண்பதாயிரம்" in t:
+        return 80000
+    if "ஐம்பதாயிரம்" in t:
+        return 50000
+
+    # English phrases
+    if "below 1 lakh" in t or "below one lakh" in t or "under 1 lakh" in t or "under one lakh" in t:
+        return 90000
+    if "below 2 lakh" in t or "below two lakh" in t or "under 2 lakh" in t:
+        return 180000
+    if "below 2.5 lakh" in t or "below 2.5" in t:
+        return 220000
+    if "below 5 lakh" in t or "under 5 lakh" in t:
         return 350000
 
-    # Check for "lakh" or "lac"
-    lakh_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:lakhs?|lacs?|l)\b', text_lower)
+    # Numeric "lakh" or "lac"
+    lakh_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:lakhs?|lacs?|l)\b', t)
     if lakh_match:
         val = float(lakh_match.group(1))
         return int(val * 100000)
     
-    # Check for "k" (e.g. 80k)
-    k_match = re.search(r'(\d+(?:\.\d+)?)\s*k\b', text_lower)
+    # Numeric "k" (e.g. 80k)
+    k_match = re.search(r'(\d+(?:\.\d+)?)\s*k\b', t)
     if k_match:
         val = float(k_match.group(1))
         return int(val * 1000)
     
-    # Check for standalone numbers
-    num_match = re.search(r'\b(\d{4,8})\b', text_lower)
+    # Standalone numbers
+    num_match = re.search(r'\b(\d{4,8})\b', t)
     if num_match:
         return int(num_match.group(1))
     
     return None
 
 def parse_class(text: str) -> Optional[int]:
-    text_lower = text.lower()
-    if "12" in text_lower or "twelfth" in text_lower or "+2" in text_lower or "hsc" in text_lower:
-        return 12
-    if "11" in text_lower or "eleventh" in text_lower or "+1" in text_lower:
-        return 11
-    if "10" in text_lower or "tenth" in text_lower or "sslc" in text_lower:
+    """Parse class/education in English and Tamil."""
+    t = text.lower()
+    
+    # Tamil matches
+    if any(w in t for w in ["பத்தாம்", "பத்தாவது", "10-ம்", "10ம்", "10 வது", "பத்து"]):
         return 10
-    if "college" in text_lower or "degree" in text_lower or "diploma" in text_lower:
+    if any(w in t for w in ["பதினொன்றாம்", "பதினொன்றாவது", "11-ம்", "11ம்", "11 வது", "பதினொன்று"]):
+        return 11
+    if any(w in t for w in ["பன்னிரண்டாம்", "பன்னிரண்டாவது", "12-ம்", "12ம்", "12 வது", "பன்னிரண்டு", "மேல்நிலை"]):
         return 12
+    if any(w in t for w in ["கல்லூரி", "பட்டப்படிப்பு", "டிப்ளமோ"]):
+        return 12
+
+    # English matches
+    if "12" in t or "twelfth" in t or "+2" in t or "hsc" in t:
+        return 12
+    if "11" in t or "eleventh" in t or "+1" in t:
+        return 11
+    if "10" in t or "tenth" in t or "sslc" in t:
+        return 10
+    if "college" in t or "degree" in t or "diploma" in t:
+        return 12
+
     return None
 
 def parse_category(text: str) -> Optional[str]:
-    text_upper = text.upper()
+    """Parse community/category in English and Tamil."""
+    t_upper = text.upper()
     for cat in ["MBC", "DNC", "SC", "ST", "BC", "OC", "GENERAL"]:
-        if re.search(r'\b' + cat + r'\b', text_upper):
+        if re.search(r'\b' + cat + r'\b', t_upper):
             return "General" if cat in ["OC", "GENERAL"] else cat
-    if "backward" in text.lower():
-        return "BC"
-    if "most backward" in text.lower():
+            
+    t = text.lower()
+    if "மிகவும் பிற்படுத்தப்பட்டோர்" in t or "சீர்மரபினர்" in t or "mbc" in t or "dnc" in t:
         return "MBC"
-    if "scheduled caste" in text.lower() or "dalit" in text.lower():
+    if "பிற்படுத்தப்பட்டோர்" in t or "bc" in t or "backward" in t:
+        return "BC"
+    if "ஆதிதிராவிடர்" in t or "பட்டியலின" in t or "sc" in t or "scheduled caste" in t or "dalit" in t:
         return "SC"
-    if "scheduled tribe" in text.lower() or "tribal" in text.lower():
+    if "பழங்குடியினர்" in t or "st" in t or "scheduled tribe" in t or "tribal" in t:
         return "ST"
+    if "பொதுப்பிரிவு" in t or "oc" in t or "general" in t:
+        return "General"
+
     return None
 
 def parse_gender(text: str) -> Optional[str]:
+    """Parse gender in English and Tamil."""
     t = text.lower()
-    if any(w in t for w in ["girl", "female", "woman", "daughter", "she", "பெண்"]):
+    # Tamil female words: மகள் (daughter), பெண் (female), மாணவி (female student)
+    if any(w in t for w in ["மகள்", "பெண்", "மாணவி", "சிறுமி", "girl", "female", "woman", "daughter", "she"]):
         return "female"
-    if any(w in t for w in ["boy", "male", "man", "son", "he", "ஆண்"]):
+    # Tamil male words: மகன் (son), ஆண் (male), மாணவன் / மாணவர் (male student), பையன் (boy)
+    if any(w in t for w in ["மகன்", "ஆண்", "மாணவன்", "மாணவர்", "பையன்", "boy", "male", "man", "son", "he"]):
         return "male"
     return None
+
+def is_affirmative(text: str) -> bool:
+    """Check if text is an affirmative confirmation in English or Tamil."""
+    t = text.lower().strip()
+    return any(w in t for w in [
+        "ஆம்", "சரி", "உறுதி", "சரியானது", "சரியாக", "1", "yes", "correct", "confirm", "right", "true", "ok", "okay"
+    ])
 
 def process_intake_message(session_id: str, message: Optional[str] = None, menu_choice: Optional[int] = None, field_updates: Optional[Dict[str, Any]] = None, language: str = "en") -> Dict[str, Any]:
     session = get_or_create_session(session_id)
@@ -122,7 +168,7 @@ def process_intake_message(session_id: str, message: Optional[str] = None, menu_
     # Natural language parsing on message
     if text:
         # Check if user says reset
-        if text.lower() in ["reset", "restart", "start over"]:
+        if any(w in text.lower() for w in ["reset", "restart", "start over", "மீண்டும்"]):
             session["profile"] = {
                 "name": "Student",
                 "state": "Tamil Nadu",
@@ -135,6 +181,11 @@ def process_intake_message(session_id: str, message: Optional[str] = None, menu_
             }
             session["step"] = "class"
             profile = session["profile"]
+
+        # If we are in confirmation step, check if user confirms via text
+        if step == "confirm":
+            if is_affirmative(text):
+                profile["confirmed"] = True
 
         # Extract whatever is present in message
         c = parse_class(text)
@@ -149,7 +200,7 @@ def process_intake_message(session_id: str, message: Optional[str] = None, menu_
         cat = parse_category(text)
         if cat: profile["category"] = cat
 
-        if "tamil nadu" in text.lower() or "tamilnadu" in text.lower() or "tn" in text.lower():
+        if any(w in text.lower() for w in ["tamil nadu", "tamilnadu", "tn", "தமிழ்நாடு", "தமிழ் நாடு"]):
             profile["state"] = "Tamil Nadu"
 
     # Identify missing fields in priority order
@@ -158,6 +209,23 @@ def process_intake_message(session_id: str, message: Optional[str] = None, menu_
     if profile.get("gender") is None: missing.append("gender")
     if profile.get("income") is None: missing.append("income")
     if profile.get("category") is None: missing.append("category")
+
+    # If all fields are present and user confirmed, finish intake
+    if len(missing) == 0 and profile.get("confirmed", False):
+        session["step"] = "complete"
+        return {
+            "session_id": session_id,
+            "reply": "Profile confirmed successfully! Matching eligible scholarships now...",
+            "reply_ta": "விவரங்கள் வெற்றிகரமாக உறுதிப்படுத்தப்பட்டது! உங்களுக்கான உதவித்தொகை திட்டங்கள் கணக்கிடப்படுகின்றன...",
+            "profile": profile,
+            "missing_fields": [],
+            "next_question": None,
+            "next_question_ta": None,
+            "menu_options": [],
+            "is_complete": True,
+            "ready_for_confirmation": False,
+            "confirmed": True
+        }
 
     # Generate reply and options based on next missing field
     if "completed_class" in missing:
@@ -213,11 +281,14 @@ def process_intake_message(session_id: str, message: Optional[str] = None, menu_
         next_q_ta = "சமூகப் பிரிவைத் தேர்ந்தெடுக்கவும்."
 
     else:
-        # All required fields are present
+        # All required fields are present but not yet confirmed
         session["step"] = "confirm"
         inc_formatted = f"₹ {profile['income']:,}" if profile.get('income') else "Not specified"
-        reply = f"Great! Profile summary:\n• Education: Class {profile['completed_class']}\n• State: {profile['state']}\n• Gender: {profile['gender'].capitalize()}\n• Family Income: {inc_formatted}\n• Community: {profile['category']}\n\nIs this accurate?"
-        reply_ta = f"அருமை! விவரச் சுருக்கம்:\n• கல்வி: வகுப்பு {profile['completed_class']}\n• மாநிலம்: {profile['state']}\n• பாலினம்: {profile['gender']}\n• ஆண்டு வருமானம்: {inc_formatted}\n• சமூகப்பிரிவு: {profile['category']}\n\nஇந்தத் தகவல்கள் சரியானவையா?"
+        gender_display = profile.get('gender', '').capitalize()
+        gender_display_ta = "ஆண் (Male)" if profile.get('gender') == 'male' else "பெண் (Female)"
+        
+        reply = f"Great! Profile summary:\n• Education: Class {profile['completed_class']}\n• State: {profile['state']}\n• Gender: {gender_display}\n• Family Income: {inc_formatted}\n• Community: {profile['category']}\n\nIs this accurate?"
+        reply_ta = f"அருமை! விவரச் சுருக்கம்:\n• கல்வி: வகுப்பு {profile['completed_class']}\n• மாநிலம்: {profile['state']}\n• பாலினம்: {gender_display_ta}\n• ஆண்டு வருமானம்: {inc_formatted}\n• சமூகப்பிரிவு: {profile['category']}\n\nஇந்தத் தகவல்கள் சரியானவையா?"
         options = [
             {"id": 1, "label": "1) Yes, Confirm & Find Eligible Schemes", "label_ta": "1) ஆம், சரிபார்க்கப்பட்டு திட்டங்களை காண்க"},
             {"id": 2, "label": "2) No, Change Details", "label_ta": "2) இல்லை, திருத்தம் செய்"}
