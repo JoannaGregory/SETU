@@ -17,8 +17,11 @@ export default function ChatIntake({ profile, setProfile, setMatchedSchemes, set
 
   // Auto‑scroll to latest bubble
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  const last = messages[messages.length - 1];
+  if (last && last.sender === 'agent') {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }
+}, [messages]);
 
   async function initChat() {
     setLoading(true)
@@ -111,6 +114,24 @@ export default function ChatIntake({ profile, setProfile, setMatchedSchemes, set
   }
 
   async function handleOptionClick(opt) {
+  // Detect "Change Details" option to reset intake flow
+  const label = lang === 'ta' ? opt.label_ta : opt.label;
+  if (/change details/i.test(label)) {
+    // Reset local state and re‑initialize the chat
+    setMessages([]);
+    setCurrentOptions([]);
+    setReadyToConfirm(false);
+    await initChat();
+    return;
+  }
+
+  // Detect "Change Details" option to reset intake flow
+  const label = lang === 'ta' ? opt.label_ta : opt.label;
+  if (/change details/i.test(label)) {
+    // Reset the conversation allowing the user to edit profile
+    await handleReset();
+    return;
+  }
     const userMsg = {
       sender: 'user',
       text: lang === 'ta' ? opt.label_ta : opt.label,

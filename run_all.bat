@@ -18,6 +18,9 @@ if not exist "frontend\dist\index.html" (
 
 cd /d "%~dp0backend"
 
+:: Start frontend development server in a separate window (if not already built)
+start "SETU Frontend" cmd /c "cd %~dp0frontend && npm.cmd run dev"
+
 :: Check if virtual environment exists; if not, create and install
 if not exist ".venv\Scripts\activate.bat" (
     echo [1/3] Python virtual environment not found. Setting it up now...
