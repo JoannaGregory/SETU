@@ -9,16 +9,16 @@ export default function ChatIntake({ profile, setProfile, setMatchedSchemes, set
   const [loading, setLoading] = useState(false)
   const [readyToConfirm, setReadyToConfirm] = useState(false)
   const chatEndRef = useRef(null)
-  const recognitionRef = useRef(null)
 
   // Initialize session on mount
   useEffect(() => {
     initChat()
   }, [lang])
 
+  // Auto‑scroll to latest bubble
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, currentOptions])
+  }, [messages])
 
   async function initChat() {
     setLoading(true)
@@ -43,42 +43,34 @@ export default function ChatIntake({ profile, setProfile, setMatchedSchemes, set
     }
   }
 
-  // Web Speech API Voice Toggle
-  function toggleMic() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      alert(t.intake.micUnsupported)
-      return
-    }
-
-    if (listening) {
-      recognitionRef.current?.stop()
-      setListening(false)
-      return
-    }
-
+  // Whisper‑based audio capture (replaces Web Speech API)
+  async function handleWhisper() {
     try {
-      const rec = new SpeechRecognition()
-      rec.lang = lang === 'ta' ? 'ta-IN' : 'en-IN'
-      rec.interimResults = false
-      rec.continuous = false
-
-      rec.onstart = () => setListening(true)
-      rec.onresult = (e) => {
-        const transcript = e.results[0][0].transcript
+      setListening(true)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      const chunks = []
+      mediaRecorder.ondataavailable = e => chunks.push(e.data)
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' })
+        const form = new FormData()
+        form.append('file', blob, 'audio.webm')
+        form.append('language', lang)
+        const resp = await fetch('/api/whisper', {
+          method: 'POST',
+          body: form
+        })
+        const data = await resp.json()
+        const transcript = data.transcript || ''
         setInputText(transcript)
         handleUserMessage(transcript)
-      }
-      rec.onerror = (e) => {
-        console.warn('Speech recognition error:', e.error)
         setListening(false)
       }
-      rec.onend = () => setListening(false)
-
-      recognitionRef.current = rec
-      rec.start()
+      mediaRecorder.start()
+      // Record for 2 seconds – adjust as needed
+      setTimeout(() => mediaRecorder.stop(), 2000)
     } catch (err) {
-      console.error('Speech recognition failed to start:', err)
+      console.error('Whisper audio error:', err)
       setListening(false)
     }
   }
@@ -92,7 +84,7 @@ export default function ChatIntake({ profile, setProfile, setMatchedSchemes, set
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 
-    setMessages((prev) => [...prev, userMsg])
+    setMessages(prev => [...prev, userMsg])
     setInputText('')
     setLoading(true)
 
@@ -104,7 +96,7 @@ export default function ChatIntake({ profile, setProfile, setMatchedSchemes, set
     setLoading(false)
 
     if (res) {
-      setMessages((prev) => [
+      setMessages(prev => [
         ...prev,
         {
           sender: 'agent',
@@ -124,7 +116,7 @@ export default function ChatIntake({ profile, setProfile, setMatchedSchemes, set
       text: lang === 'ta' ? opt.label_ta : opt.label,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
-    setMessages((prev) => [...prev, userMsg])
+    setMessages(prev => [...prev, userMsg])
     setLoading(true)
 
     const res = await sendIntakeMessage({
@@ -135,7 +127,7 @@ export default function ChatIntake({ profile, setProfile, setMatchedSchemes, set
     setLoading(false)
 
     if (res) {
-      setMessages((prev) => [
+      setMessages(prev => [
         ...prev,
         {
           sender: 'agent',
@@ -200,130 +192,45 @@ export default function ChatIntake({ profile, setProfile, setMatchedSchemes, set
                 <div className="bubble-time">{m.time}</div>
               </div>
             ))}
-
-            {loading && (
-              <div className="bubble agent" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#94A3B8', animation: 'pulse 1s infinite' }} />
-                <span style={{ fontSize: '0.82rem', color: '#64748B' }}>Thinking...</span>
-              </div>
-            )}
-
-            {/* Quick Menu Options */}
-            {currentOptions.length > 0 && !loading && (
-              <div className="menu-options">
-                <small style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{t.intake.quickSelect}</small>
-                {currentOptions.map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    className="menu-opt-btn"
-                    onClick={() => handleOptionClick(opt)}
-                  >
-                    {lang === 'ta' ? opt.label_ta : opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
             <div ref={chatEndRef} />
           </div>
 
           <div className="chat-footer">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                handleUserMessage(inputText)
-              }}
-              className="chat-input-bar"
-            >
-              <button
-                type="button"
-                className={`chat-mic-btn ${listening ? 'active' : ''}`}
-                onClick={toggleMic}
-                title={listening ? t.intake.micStop : t.intake.micStart}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="22" />
-                </svg>
-              </button>
-
-              <input
-                type="text"
-                className="chat-input"
-                placeholder={listening ? t.intake.listening : t.intake.typePlaceholder}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-              />
-
-              <button type="submit" className="btn-primary" style={{ padding: '10px 18px' }} disabled={!inputText.trim()}>
-                {t.intake.btnSend}
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Live Profile Verification Side Panel */}
-        <div className="profile-panel">
-          <div>
-            <div className="profile-panel-head">
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>{t.intake.profileHeading}</h3>
-              <span className={isComplete ? 'badge-complete' : 'badge-incomplete'}>
-                {isComplete ? t.intake.statusComplete : t.intake.statusIncomplete}
-              </span>
-            </div>
-
-            <div className="data-row">
-              <span className="label">{t.intake.fields.class}</span>
-              <span className="val">
-                {profile.completed_class ? `Class ${profile.completed_class}` : '—'}
-              </span>
-            </div>
-
-            <div className="data-row">
-              <span className="label">{t.intake.fields.gender}</span>
-              <span className="val">
-                {profile.gender ? profile.gender.toUpperCase() : '—'}
-              </span>
-            </div>
-
-            <div className="data-row">
-              <span className="label">{t.intake.fields.income}</span>
-              <span className="val">
-                {profile.income ? `₹ ${Number(profile.income).toLocaleString('en-IN')}` : '—'}
-              </span>
-            </div>
-
-            <div className="data-row">
-              <span className="label">{t.intake.fields.category}</span>
-              <span className="val">
-                {profile.category || '—'}
-              </span>
-            </div>
-
-            <div className="data-row">
-              <span className="label">{t.intake.fields.state}</span>
-              <span className="val">{profile.state || 'Tamil Nadu'}</span>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '24px' }}>
-            <button
-              type="button"
-              className="btn-primary"
-              style={{ width: '100%', justifyContent: 'center' }}
-              onClick={handleConfirmAndMatch}
-              disabled={!isComplete}
-            >
-              <span>✅</span>
-              <span>{t.intake.btnConfirm}</span>
+            <input
+              type="text"
+              placeholder={t.intake.placeholder}
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleUserMessage(inputText)}
+              disabled={loading}
+            />
+            <button type="button" onClick={() => handleUserMessage(inputText)} disabled={loading}>
+              {t.intake.sendBtn}
             </button>
-            <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '10px' }}>
-              {isComplete ? 'All fields verified. Ready for deterministic rule matching.' : 'Complete all fields via chat to evaluate eligibility.'}
-            </p>
+            <button type="button" onClick={handleWhisper} disabled={listening} title="Speak (Whisper)">
+              {listening ? '🎙️...' : '🎤'}
+            </button>
           </div>
         </div>
+
+        {/* Options / Quick Select */}
+        {currentOptions.length > 0 && (
+          <div className="options-panel">
+            <h4>{t.intake.quickSelect}</h4>
+            <ul>
+              {currentOptions.map(opt => (
+                <li key={opt.id} onClick={() => handleOptionClick(opt)}>{lang === 'ta' ? opt.label_ta : opt.label}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Confirmation */}
+        {readyToConfirm && (
+          <div className="confirm-panel">
+            <button onClick={handleConfirmAndMatch}>{t.intake.confirmBtn}</button>
+          </div>
+        )}
       </div>
     </section>
   )

@@ -30,6 +30,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# -----------------------------------------------------------------
+# Whisper endpoint (audio → text) – supports English and Tamil
+# -----------------------------------------------------------------
+from .api import whisper as whisper_api
+app.include_router(whisper_api.router, prefix="/api")
+
 @app.get("/api/health")
 def health():
     return {
