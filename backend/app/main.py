@@ -256,6 +256,18 @@ def skip_days_demo(payload: Optional[Dict[str, int]] = Body(None)):
     return result
 
 # ----------------- ADMIN SCHEME MANAGEMENT -----------------
+
+# ----------------- MY APPLICATIONS ENDPOINT -----------------
+@app.get("/api/my-applications")
+def my_applications(student_name: str):
+    """Return list of the student's scholarship applications with a countdown.
+    The response includes the case ID, scheme details, deadline and a human‑readable
+    remaining‑days message such as "3 days remaining".
+    """
+    from .agents.my_applications_agent import get_my_applications
+    return get_my_applications(student_name)
+
+# ----------------- ADMIN SCHEME MANAGEMENT -----------------
 @app.get("/api/admin/schemes")
 def admin_schemes():
     conn = get_db()
