@@ -1,10 +1,33 @@
 import re
+
 from typing import Dict, Any, Tuple, List, Optional
+from fastapi.concurrency import run_in_threadpool
 
 # Active in-memory sessions: session_id -> { profile, history, step }
 _SESSIONS: Dict[str, Dict[str, Any]] = {}
 
+# Import Gemini extraction helper
+from .gemini_intake import extract_profile
+
 def get_or_create_session(session_id: str) -> Dict[str, Any]:
+    if session_id not in _SESSIONS:
+        _SESSIONS[session_id] = {
+            "profile": {
+                "name": "Student",
+                "state": "Tamil Nadu",
+                "completed_class": None,
+                "income": None,
+                "income_upper_bound": None,
+                "income_lower_bound": None,
+                "ambiguous_income": False,
+                "category": None,
+                "gender": None,
+                "course_pursuing": None,
+                "confirmed": False,
+            },
+            "step": "class",
+        }
+    return _SESSIONS[session_id]
     if session_id not in _SESSIONS:
         _SESSIONS[session_id] = {
             "profile": {
@@ -187,7 +210,40 @@ def process_intake_message(session_id: str, message: Optional[str] = None, menu_
             if is_affirmative(text):
                 profile["confirmed"] = True
 
-        # Extract whatever is present in message
+        # Use Gemini to extract fields from free‑text input
+        try:
+            parsed = extract_profile(text)
+            # Map Gemini fields to our session profile
+            if parsed.student_class is not None:
+                profile["completed_class"] = parsed.student_class
+            if parsed.gender is not None:
+                profile["gender"] = parsed.gender
+            if parsed.annual_income_rupees is not None:
+                profile["income"] = parsed.annual_income_rupees
+            if parsed.income_upper_bound is not None:
+                profile["income_upper_bound"] = parsed.income_upper_bound
+            if parsed.income_lower_bound is not None:
+                profile["income_lower_bound"] = parsed.income_lower_bound
+            if parsed.ambiguous_income:
+                profile["ambiguous_income"] = True
+            if parsed.category is not None:
+                profile["category"] = parsed.category
+            if parsed.state is not None:
+                profile["state"] = parsed.state
+        except Exception as e:
+            print(f"Gemini extraction failed: {e}")
+        # Preserve original Tamil Nadu detection for fallback
+        if any(w in text.lower() for w in ["tamil nadu", "tamilnadu", "tn", "தமிழ்நாடு", "தமிழ் நாடு"]):
+            profile["state"] = "Tamil Nadu"
+        # Old heuristic parsing (commented out)
+        # c = parse_class(text)
+        # if c: profile["completed_class"] = c
+        # g = parse_gender(text)
+        # if g: profile["gender"] = g
+        # inc = parse_income(text)
+        # if inc: profile["income"] = inc
+        # cat = parse_category(text)
+        # if cat: profile["category"] = cat
         c = parse_class(text)
         if c: profile["completed_class"] = c
         

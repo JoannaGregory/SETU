@@ -6,7 +6,10 @@ class StudentProfile(BaseModel):
     name: Optional[str] = "Student"
     state: str = "Tamil Nadu"
     completed_class: Optional[int] = None  # optional, validation handled elsewhere
-    income: int = Field(..., description="Annual family income in INR")
+    income: Optional[int] = Field(None, description="Annual family income in INR")
+    income_upper_bound: Optional[int] = Field(None, description="Upper bound of income range if exact amount not given")
+    income_lower_bound: Optional[int] = Field(None, description="Lower bound of income range if exact amount not given")
+    ambiguous_income: bool = Field(False, description="True if income could not be parsed exactly")
     category: str = Field("General", description="Community/Category: OC, BC, MBC, DNC, SC, ST, etc.")
     gender: str = Field("any", description="male, female, other, any")
     course_pursuing: Optional[str] = None
